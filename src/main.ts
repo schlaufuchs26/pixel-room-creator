@@ -94,6 +94,64 @@ loadBtn.addEventListener('click', () => {
     }
 });
 
+// Share room via URL
+function updateUrlHash() {
+    const compressed = compressRoomData(roomData);
+    window.location.hash = compressed;
+}
+
+function compressRoomData(data: string[][]): string {
+    // Simple compression: convert to base64
+    const json = JSON.stringify(data);
+    return btoa(encodeURIComponent(json));
+}
+
+function decompressRoomData(compressed: string): string[][] {
+    try {
+        const json = decodeURIComponent(atob(compressed));
+        return JSON.parse(json);
+    } catch (e) {
+        console.error('Failed to decompress room data:', e);
+        return Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill('#FFFFFF'));
+    }
+}
+
+// Check URL hash on load
+window.addEventListener('load', () => {
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1); // Remove #
+        roomData = decompressRoomData(hash);
+        drawGrid();
+    }
+});
+
+// Share button event listener
+const shareBtn = document.getElementById('share') as HTMLButtonElement;
+shareBtn.addEventListener('click', () => {
+    updateUrlHash();
+    const url = window.location.href;
+    if (navigator.share) {
+        navigator.share({
+            title: 'Pixel Room Creator',
+            text: 'Check out my pixel room!',
+            url: url
+        }).catch(() => {
+            // Fallback to copy if share fails
+            copyToClipboard(url);
+        });
+    } else {
+        copyToClipboard(url);
+    }
+});
+
+function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Room URL copied to clipboard! Share it with friends.');
+    }).catch(() => {
+        alert('Could not copy to clipboard. URL is in your address bar.');
+    });
+}
+
 // Event listeners
 canvas.addEventListener('mousedown', startDrawing);
 canvas.addEventListener('mousemove', drawPixel);
